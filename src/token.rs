@@ -6,6 +6,14 @@ pub enum TokenKind {
     Int,
     Assign,
     Plus,
+    Minus,
+    Bang,
+    Asterisk,
+    Slash,
+    Lt,
+    Gt,
+    Eq,
+    NotEq,
     Comma,
     Semi,
     LParen,
@@ -14,6 +22,11 @@ pub enum TokenKind {
     RBrace,
     Function,
     Let,
+    True,
+    False,
+    If,
+    Else,
+    Return,
 }
 
 #[derive(Debug, PartialEq)]

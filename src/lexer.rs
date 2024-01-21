@@ -28,24 +28,64 @@ impl Lexer {
         self.next += 1;
     }
 
+    fn match_identifier(&self, identifier: String) -> Token {
+        match identifier.as_str() {
+            "let" => Token::new(TokenKind::Let, identifier),
+            "fn" => Token::new(TokenKind::Function, identifier),
+            "true" => Token::new(TokenKind::True, identifier),
+            "false" => Token::new(TokenKind::False, identifier),
+            "if" => Token::new(TokenKind::If, identifier),
+            "else" => Token::new(TokenKind::Else, identifier),
+            "return" => Token::new(TokenKind::Return, identifier),
+            _ => Token::new(TokenKind::Ident, identifier),
+        }
+    }
+
+    fn peek_char(&self) -> Option<char> {
+        match self.next {
+            x if x <= self.input.len() => self.input.chars().nth(self.next - 1),
+            _ => None,
+        }
+    }
+
     fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         let token = match self.ch {
-            Some('=') => Token::new(TokenKind::Assign, self.ch.unwrap().to_string()),
+            Some('=') => {
+                let peek = self.peek_char();
+                match peek {
+                    Some('=') => {
+                        self.read_char();
+                        Token::new(TokenKind::Eq, "==".to_string())
+                    }
+                    _ => Token::new(TokenKind::Assign, self.ch.unwrap().to_string()),
+                }
+            }
+            Some('+') => Token::new(TokenKind::Plus, self.ch.unwrap().to_string()),
+            Some('-') => Token::new(TokenKind::Minus, self.ch.unwrap().to_string()),
+            Some('!') => {
+                let peek = self.peek_char();
+                match peek {
+                    Some('=') => {
+                        self.read_char();
+                        Token::new(TokenKind::NotEq, "!=".to_string())
+                    }
+                    _ => Token::new(TokenKind::Bang, self.ch.unwrap().to_string()),
+                }
+            }
+            Some('/') => Token::new(TokenKind::Slash, self.ch.unwrap().to_string()),
+            Some('*') => Token::new(TokenKind::Asterisk, self.ch.unwrap().to_string()),
+            Some('<') => Token::new(TokenKind::Lt, self.ch.unwrap().to_string()),
+            Some('>') => Token::new(TokenKind::Gt, self.ch.unwrap().to_string()),
             Some(';') => Token::new(TokenKind::Semi, self.ch.unwrap().to_string()),
             Some('(') => Token::new(TokenKind::LParen, self.ch.unwrap().to_string()),
             Some(')') => Token::new(TokenKind::RParen, self.ch.unwrap().to_string()),
             Some(',') => Token::new(TokenKind::Comma, self.ch.unwrap().to_string()),
-            Some('+') => Token::new(TokenKind::Plus, self.ch.unwrap().to_string()),
             Some('{') => Token::new(TokenKind::LBrace, self.ch.unwrap().to_string()),
             Some('}') => Token::new(TokenKind::RBrace, self.ch.unwrap().to_string()),
             Some(ch) if ch.is_alphabetic() => {
                 let identifier = self.read_identifier();
-                match identifier.as_str() {
-                    "let" => Token::new(TokenKind::Let, identifier),
-                    "fn" => Token::new(TokenKind::Function, identifier),
-                    _ => Token::new(TokenKind::Ident, identifier),
-                }
+                self.match_identifier(identifier)
             }
             Some(c) if c.is_numeric() => Token::new(TokenKind::Int, self.read_integer()),
             None => Token::new(TokenKind::Eof, "".to_string()),
@@ -91,7 +131,6 @@ impl Lexer {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::token;
 
     #[test]
     fn test_next_token() {
@@ -100,7 +139,18 @@ mod test {
             let add = fn(x, y) {
                 x + y;
             };
-            let result = add(five, ten);";
+            let result = add(five, ten);
+            ! =/*5;
+            5 < 10 > 5;
+
+            if (5 < 10) {
+                return true;
+            } else {
+                return false;
+            }
+            10 == 10;
+            10 != 9;";
+
         let expected: Vec<Token> = vec![
             Token::new(TokenKind::Let, "let".to_string()),
             Token::new(TokenKind::Ident, "five".to_string()),
@@ -138,10 +188,48 @@ mod test {
             Token::new(TokenKind::Ident, "ten".to_string()),
             Token::new(TokenKind::RParen, ")".to_string()),
             Token::new(TokenKind::Semi, ";".to_string()),
+            Token::new(TokenKind::Bang, "!".to_string()),
+            Token::new(TokenKind::Assign, "=".to_string()),
+            Token::new(TokenKind::Slash, "/".to_string()),
+            Token::new(TokenKind::Asterisk, "*".to_string()),
+            Token::new(TokenKind::Int, "5".to_string()),
+            Token::new(TokenKind::Semi, ";".to_string()),
+            Token::new(TokenKind::Int, "5".to_string()),
+            Token::new(TokenKind::Lt, "<".to_string()),
+            Token::new(TokenKind::Int, "10".to_string()),
+            Token::new(TokenKind::Gt, ">".to_string()),
+            Token::new(TokenKind::Int, "5".to_string()),
+            Token::new(TokenKind::Semi, ";".to_string()),
+            Token::new(TokenKind::If, "if".to_string()),
+            Token::new(TokenKind::LParen, "(".to_string()),
+            Token::new(TokenKind::Int, "5".to_string()),
+            Token::new(TokenKind::Lt, "<".to_string()),
+            Token::new(TokenKind::Int, "10".to_string()),
+            Token::new(TokenKind::RParen, ")".to_string()),
+            Token::new(TokenKind::LBrace, "{".to_string()),
+            Token::new(TokenKind::Return, "return".to_string()),
+            Token::new(TokenKind::True, "true".to_string()),
+            Token::new(TokenKind::Semi, ";".to_string()),
+            Token::new(TokenKind::RBrace, "}".to_string()),
+            Token::new(TokenKind::Else, "else".to_string()),
+            Token::new(TokenKind::LBrace, "{".to_string()),
+            Token::new(TokenKind::Return, "return".to_string()),
+            Token::new(TokenKind::False, "false".to_string()),
+            Token::new(TokenKind::Semi, ";".to_string()),
+            Token::new(TokenKind::RBrace, "}".to_string()),
+            Token::new(TokenKind::Int, "10".to_string()),
+            Token::new(TokenKind::Eq, "==".to_string()),
+            Token::new(TokenKind::Int, "10".to_string()),
+            Token::new(TokenKind::Semi, ";".to_string()),
+            Token::new(TokenKind::Int, "10".to_string()),
+            Token::new(TokenKind::NotEq, "!=".to_string()),
+            Token::new(TokenKind::Int, "9".to_string()),
+            Token::new(TokenKind::Semi, ";".to_string()),
         ];
+
         let mut lexer = Lexer::new(input);
         let mut tokens: Vec<Token> = Vec::new();
-        for _ in &expected {
+        while lexer.ch.is_some() {
             tokens.push(lexer.next_token());
         }
         assert_eq!(tokens, expected);
