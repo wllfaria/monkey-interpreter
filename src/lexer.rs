@@ -1,14 +1,14 @@
 use crate::token::*;
 
-struct Lexer {
-    input: &'static str,
+pub struct Lexer<'a> {
+    input: &'a str,
     position: usize,
     next: usize,
     ch: Option<char>,
 }
 
-impl Lexer {
-    fn new(input: &'static str) -> Self {
+impl<'a> Lexer<'a> {
+    pub fn new(input: &'a str) -> Self {
         let mut l = Lexer {
             input,
             ch: None,
@@ -48,7 +48,7 @@ impl Lexer {
         }
     }
 
-    fn next_token(&mut self) -> Token {
+    pub fn next_token(&mut self) -> Token {
         self.skip_whitespace();
         let token = match self.ch {
             Some('=') => {
@@ -118,12 +118,12 @@ impl Lexer {
     }
 
     fn skip_whitespace(&mut self) {
-        match self.ch {
-            None => return,
-            _ => {}
-        };
-        while self.ch.unwrap().is_whitespace() {
-            self.read_char();
+        while self.ch.is_some() {
+            if self.ch.unwrap().is_whitespace() {
+                self.read_char();
+            } else {
+                break;
+            }
         }
     }
 }
@@ -149,7 +149,8 @@ mod test {
                 return false;
             }
             10 == 10;
-            10 != 9;";
+            10 != 9;
+            ";
 
         let expected: Vec<Token> = vec![
             Token::new(TokenKind::Let, "let".to_string()),
@@ -225,6 +226,7 @@ mod test {
             Token::new(TokenKind::NotEq, "!=".to_string()),
             Token::new(TokenKind::Int, "9".to_string()),
             Token::new(TokenKind::Semi, ";".to_string()),
+            Token::new(TokenKind::Eof, "".to_string()),
         ];
 
         let mut lexer = Lexer::new(input);
